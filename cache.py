@@ -22,6 +22,7 @@ def load_cache(file_path=CACHE_FILE):
 def save_cache(content, file_path=CACHE_FILE):
     """Сохраняет кэш в файл"""
     try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(content, f, ensure_ascii=False, indent=2)
     except:
