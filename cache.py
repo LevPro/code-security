@@ -5,11 +5,12 @@ import os
 CACHE_FILE = os.path.join(os.path.expanduser("~"), ".code-security", "cache.json")
 
 
-def load_cache():
+def load_cache(file_path=CACHE_FILE):
     """Инициализирует кэш из файла"""
-    if os.path.exists(CACHE_FILE):
+    cache = {}
+    if os.path.exists(file_path):
         try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 cache = json.load(f)
         except:
             pass
@@ -18,10 +19,10 @@ def load_cache():
 
 
 
-def save_cache(content):
+def save_cache(content, file_path=CACHE_FILE):
     """Сохраняет кэш в файл"""
     try:
-        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(content, f, ensure_ascii=False, indent=2)
     except:
         pass
