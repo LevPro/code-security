@@ -1,0 +1,20 @@
+# Виртуальные окружения
+venv/
+env/
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+
+# Логи и временные файлы
+*.log
+*.tmp
+
+# Модели Ollama
+.models/
