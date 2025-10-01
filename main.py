@@ -29,6 +29,8 @@ def process_single_file(file_path, model, requirements, extensions):
     if process_result['result'] != '':
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(process_result['result'])
+    else:
+        print(f"Получен пустой ответ {file_path}")
 
     return (file_path, process_result['processing_time'])
 
