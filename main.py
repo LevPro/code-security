@@ -8,7 +8,7 @@ from ollama_process import ollama_process
 from encoding_converter import convert_dir_to_utf8
 
 
-def process_single_file(file_path, model, requirements):
+def process_single_file(file_path, model, requirements, extensions):
     """Обрабатывает один файл с использованием модели Ollama"""
     try:
         # Читаем содержимое файла
@@ -20,19 +20,83 @@ def process_single_file(file_path, model, requirements):
 
     # Обрабатываем содержимое файла с использованием указанной модели
     try:
-        process_result = ollama_process(original_content, model, requirements)
+        process_result = ollama_process(original_content, model, requirements, extensions)
     except Exception as e:
         print(f"Ошибка обработки файла {file_path}: {e}")
         return None
 
     # Записываем результат обратно в файл
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(process_result['result'])
+    if process_result['result'] != '':
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(process_result['result'])
 
     return (file_path, process_result['processing_time'])
 
 
 def main():
+    # Расширения по умолчанию
+    extensions = [
+        # Языки общего назначения
+        ".py",  # Python
+        ".java",  # Java
+        ".cpp", ".cc", ".cxx", ".c++",  # C++
+        ".cs",  # C#
+        ".rb",  # Ruby
+        ".go",  # Go
+        ".swift",  # Swift
+        ".kotlin",  # Kotlin
+        ".php",  # PHP
+
+        # Языки скриптового программирования
+        ".js",  # JavaScript (Node.js, browser)
+        ".ts",  # TypeScript
+        ".pl",  # Perl
+        ".sh", ".bash", ".zsh",  # Shell Script (Bash, Zsh и т.д.)
+        ".r",  # R (язык программирования для статистики)
+
+        # Языки системного программирования
+        ".c",  # C
+        ".asm", ".s",  # Assembly
+
+        # Функциональные языки программирования
+        ".hs",  # Haskell
+        ".scala",  # Scala
+        ".elm",  # Elm
+
+        # Языки для веб-разработки
+        ".html",  # HTML
+        ".css",  # CSS
+        ".scss", ".sass",  # Sass/SCSS
+        ".less",  # Less
+
+        # Языки для мобильной разработки
+        ".xml",  # XML (часто используется в Android)
+        ".gradle",  # Gradle (для сборки Android-приложений)
+
+        # Языки для игры разработки
+        ".lua",  # Lua (часто используется в игровых движках)
+        ".gdscript",  # GDScript (Язык скриптового программирования для Godot Engine)
+
+        # Другие языки и специализированные форматы
+        ".rkt",  # Racket (Scheme-подобный язык)
+        ".dart",  # Dart (язык от Google для разработки мобильных приложений)
+        ".clojure",  # Clojure
+        ".clj",  # Clojure
+        ".coffee",  # CoffeeScript
+        ".dart",  # Dart
+        ".elm",  # Elm
+        ".groovy",  # Groovy (язык для JVM, совместимый с Java)
+        ".scala",  # Scala (для JVM)
+        ".vbs",  # Visual Basic Script
+        ".bat",  # Batch Script
+
+        # Маркапы и другие форматы
+        ".json",  # JSON
+        ".xml",  # XML
+        ".yaml", ".yml",  # YAML
+        ".md",  # Markdown
+    ]
+
     # Создаём парсер аргументов командной строки для удобного взаимодействия с программой
     parser = argparse.ArgumentParser(description="Поиск всех файлов с указанными расширениями в заданной директории.")
 
@@ -43,7 +107,7 @@ def main():
     parser.add_argument("-m", "--model", type=str, required=True, help="Имя модели")
 
     # Добавляем возможность указать несколько расширений файлов для поиска
-    parser.add_argument("-e", "--extensions", nargs="+", required=False, default=[], help="Список расширений файлов для поиска")
+    parser.add_argument("-e", "--extensions", nargs="+", required=False, default=extensions, help="Список расширений файлов для поиска")
 
     # Добавляем возможность указать количество потоков
     parser.add_argument("-t", "--threads", type=int, required=False, default=5, help="Количество потоков")
@@ -70,7 +134,7 @@ def main():
     files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
 
     # Создаем частичную функцию для обработки файлов
-    process_func = partial(process_single_file, model=args.model, requirements=args.requirements)
+    process_func = partial(process_single_file, model=args.model, requirements=args.requirements, extensions=args.extensions)
 
     # Многопоточная обработка файлов
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as executor:
