@@ -67,11 +67,11 @@ def ollama_process(file_content, model, requirements, extensions):
             start_num += 1
 
     # Упрощенный промпт для ускорения обработки
-    prompt = f"""Внеси необходимые исправления в код для устранения уязвимостей.
+    prompt = f"""Make the necessary code changes to fix the vulnerabilities.
 
         {requirements_info}
 
-        Код для исправления:
+        Correction code:
         {file_content}"""
 
     # Начало отсчета времени
