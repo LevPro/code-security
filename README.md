@@ -30,8 +30,8 @@
 1. Установите [Ollama](https://ollama.ai/)
 2. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/LevPro/php-up
-cd php-up
+git clone https://github.com/LevPro/code-security
+cd code-security
 ```
 3. Установите зависимости: 
 ```bash
