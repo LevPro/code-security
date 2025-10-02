@@ -74,7 +74,7 @@ def main():
     parser = argparse.ArgumentParser(description="Поиск всех файлов с указанными расширениями в заданной директории.")
 
     # Добавляем аргумент для пути к директории, которую будем искать
-    parser.add_argument("directory", nargs="+", required=True, help="Путь к директории")
+    parser.add_argument("directory", type=str, help="Путь к директории")
 
     # Добавляем аргумент для имени модели, которая будет использоваться для обработки файлов
     parser.add_argument("-m", "--model", type=str, required=True, help="Имя модели")
@@ -95,11 +95,7 @@ def main():
     args = parser.parse_args()
 
     # Собираем файлы с указанными расширениями в директории
-    files = []
-
-    for directory in args.directory:
-        add_files = file_collector(directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
-        files.extend(add_files)
+    files = file_collector(args.directory, args.extensions, exclude_dirs=args.exclude_dirs, exclude_files=args.exclude_files, exclude_patterns=args.exclude_patterns)
 
     try:
         # Получаем контент файлов
