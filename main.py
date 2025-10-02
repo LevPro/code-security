@@ -144,7 +144,7 @@ def main():
                     with open(item['file'], 'w', encoding='utf-8') as file:
                         file.write(item['text'])
 
-                with open(args.directory + '/report.txt', 'w') as file:
+                with open('report.txt', 'w') as file:
                     file.write(changes)
             else:
                 print("Нет файлов для изменений") 
