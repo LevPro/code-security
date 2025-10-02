@@ -40,14 +40,12 @@ pip install -r requirements.txt
 
 ## Использование
 ```bash
-python main.py /path/to/php/project -m codellama:7b -t 4 -e php phtml -ed "/full/path/vendor" "/full/path/.git" -ep "*.test.php" "temp_*"
+python main.py /path/to/php/project1 /path/to/php/project2  -m codellama:7b -e php phtml -ed "/full/path/vendor" "/full/path/.git" -ep "*.test.php" "temp_*"
 ```
 Параметры командной строки:
 - directory (обязательный): Путь к директории с PHP-проектом
-- -m/--model (обязательный): Имя модели Ollama
+- -m/--model (обязательный): Имя модели Ollama. Рекомендуется использовать instruct модели.
 - -e/--extensions: Расширения файлов для обработки (по умолчанию: php)
-- -r/--requirements: Дополнительные требования (опционально)
-- -t/--threads: Количество потоков (опционально)
 - -ed/--exclude-dirs - полные пути к директориям для исключения (опционально)
 - -ef/--exclude-files - полные пути к файлам для исключения (опционально)
 - -ep/--exclude-patterns - маски для исключения (например, *.test.php, temp_*) (опционально)

@@ -1,119 +1,94 @@
-import time
 import re
+import json
 import requests
-import hashlib
-
-from functools import lru_cache
-from cache import load_cache, save_cache
 
 
-def _strip_code_fences(text: str, extensions: list) -> str:
-    """Убирает внешние тройные бэктики ```...``` и возможный язык после них, не трогая содержимое.
-    Работает построчно: если первая строка начинается с ``` — убираем её; если последняя строка — тоже ``` — убираем.
-    Ничего не удаляем внутри тела.
+def _extract_json_from_string(text):
+    # Паттерн для поиска JSON-массива, начинающегося с [{ и заканчивающегося }]
+    pattern = r"\[\s*\{.*?\}\s*\]"
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    for match in matches:
+        try:
+            # Пытаемся распарсить найденную строку как JSON
+            data = json.loads(match)
+            # Проверяем, что это список словарей с нужными полями
+            if isinstance(data, list) and all(
+                isinstance(item, dict)
+                and {"file", "text", "changes"}.issubset(item.keys())
+                for item in data
+            ):
+                return data
+        except json.JSONDecodeError:
+            continue  # Если парсинг не удался, пробуем следующий match
+    return None  # Если ничего не найдено
+
+
+def ollama_process(files_content, model):
+    files_info = ""
+
+    for file in files_content:
+        files_info += f"""{file['file_path']}:
+        {file['content']}
+
+        """
+
+    # Промт для обработки
+    prompt = f"""Analyze the code of these files:
+    {files_info}
+
+    Find the following potential vulnerabilities:
+    1. Injections (SQL, NoSQL, command, LDAP)
+    2. Cross-site scripting (XSS) - stored, reflected, DOM-based
+    3. Cross-site request forgery (CSRF)
+    4. Insecure deserialization
+    5. Use of components with known vulnerabilities
+    6. Deficiencies in logging and monitoring
+    7. Incorrect security settings
+    8. Disclosure of sensitive data
+    9. Access control flaws (vertical/horizontal)
+    10. Incorrect authentication and session management
+    11. Security configuration errors
+    12. Protection against brute force attacks
+    13. Insecure memory handling (buffer overflow, use-after-free)
+    14. Incorrect input data validation and sanitization
+    15. Cryptography issues (weak algorithms, improper usage)
+    16. Competitive access errors (race conditions)
+    17. Insecure Direct Object References (IDOR)
+    18. SSRF (Server-Side Request Forgery)
+    19. XXE (XML External Entity)
+    20. Path traversal and file inclusion
+
+    Fix the discovered vulnerabilities.
+
+    The response must be only a valid JSON array. Use the following schema as the exact format. The "text" field must be the complete, corrected code for the file.
+    
+    JSON schema for the response::
     """
-    code_block = ''
-    
-    for ext in extensions:
-        # Используем регулярное выражение для поиска блока кода
-        match = re.search(r'```' + re.escape(ext) + '(.*?)```', text, re.DOTALL)
-        
-        if not match:
-            continue
-        
-        # Извлекаем содержимое блока кода
-        code_block = match.group(1).strip()
+    prompt += '[{"file": "/path/to/example.py", "text": "def safe_function(): # This is the full corrected code ...", "changes": "Fixed SQL injection by using parameterized queries."}]'
 
-    # Если ничего не нашли - возвращаем пустую строку
-    if code_block == '':
-        return code_block
-        
-    # Удаляем лишние пустые строки в начале и конце
-    while code_block and code_block[0] == '':
-        code_block = code_block[1:]
-    while code_block and code_block[-1] == '':
-        code_block = code_block[:-1]
-    
-    return code_block
-
-
-@lru_cache(maxsize=1000)
-def _generate_prompt_hash(file_content, requirements):
-    """Генерирует хэш для кэширования промптов"""
-    content = f"{file_content}_{'_'.join(requirements)}"
-    return hashlib.md5(content.encode('utf-8')).hexdigest()
-
-
-def ollama_process(file_content, model, requirements, extensions):
-    # Генерируем хэш для кэширования
-    content_hash = _generate_prompt_hash(file_content, tuple(requirements))
-
-    # Проверяем, есть ли результат в кэше
-    cache = load_cache()
-
-    if content_hash in cache:
-        cached_result = cache[content_hash]
-        return {
-            "processing_time": cached_result["processing_time"],
-            "result": cached_result["result"]
-        }
-    # Добавляем дополнительные требования
-    requirements_info = ""
-    if len(requirements) > 0:
-        requirements_info = "Требования:\n"
-        start_num = 1
-        for requirement in requirements:
-            requirements_info = requirements_info + f"{start_num}. {requirement}\n"
-            start_num += 1
-
-    # Упрощенный промпт для ускорения обработки
-    prompt = f"""Make the necessary code changes to fix the vulnerabilities.
-
-        {requirements_info}
-
-        Correction code:
-        {file_content}"""
-
-    # Начало отсчета времени
-    start_time = time.time()
+    print(f"Отправка запроса {prompt}")
 
     # Указываем корректный URL для локального сервера Ollama
-    url = 'http://localhost:11434/api/generate'
-    headers = {'Content-Type': 'application/json'}
+    url = "http://localhost:11434/api/generate"
+    headers = {"Content-Type": "application/json"}
 
     # Формируем тело запроса с указанием модели и промта
-    data = {
-        "model": model,
-        "prompt": prompt,
-        "stream": False
-    }
+    data = {"model": model, "prompt": prompt, "stream": False}
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=600)
+        response = requests.post(url, headers=headers, json=data, timeout=3600)
         response.raise_for_status()
 
         # Извлекаем результат из поля 'response' в JSON
         result = response.json()
-        result = result['response']
+        result = result["response"]
 
-        result = _strip_code_fences(result, extensions)
+        print(f"Получен ответ {result}")
 
-        # Окончание отсчета времени
-        end_time = time.time()
-        processing_time = end_time - start_time
+        result = _extract_json_from_string(result)
 
-        # Сохраняем результат в кэш
-        cache[content_hash] = {
-            "processing_time": processing_time,
-            "result": result
-        }
-
-        save_cache(cache)
-
-        return {
-            "processing_time": processing_time,
-            "result": result
-        }
+        return result
 
     except requests.exceptions.RequestException as e:
         raise Exception(f"Ошибка при запросе к Ollama: {str(e)}")
